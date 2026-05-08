@@ -1,19 +1,31 @@
-import { revalidatePath } from 'next/cache';
+import { revalidateTag } from 'next/cache';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 /**
  * On-demand revalidation endpoint called by the Dashboard
- * (`app.augenix.ai`) after a user approves an AI edit in the Command Center.
+ * (`app.augenix.ai`) after a user approves an AI edit, publishes a page, or
+ * changes org branding in the Command Center.
  *
  * Per PRD §9 ("Push Live"):
  *   POST /api/revalidate
  *   Headers: { "x-revalidate-secret": "<shared secret>" }
- *   Body:    { "orgId": "uuid", "pageSlug": "homepage" }
+ *   Body:    { "tags": ["page:<uuid>:<slug>", "org:id:<uuid>", ...] }
  *
- * The path we revalidate is just the slug — Next.js's ISR cache key already
- * includes the host, so revalidating `/${pageSlug}` invalidates the cached
- * render for whichever client domain mapped to `orgId`.
+ * Tag conventions live in `src/lib/cache-tags.ts`. Senders are expected to use
+ * the most precise tag they can:
+ *
+ *  - On page publish/unpublish/edit:  `page:${orgId}:${slug}`
+ *  - On org branding change:          `org:id:${orgId}`
+ *  - On `custom_domain` rename:       `org:host:${oldHost}`,
+ *                                     `org:host:${newHost}`,
+ *                                     `org:id:${orgId}`
+ *
+ * Multiple tags can be busted in a single POST. Duplicates and empty / oversized
+ * strings are deduped / dropped server-side.
+ *
+ * The endpoint returns the list of tags it actually busted so the caller can
+ * log / verify; the secret is never echoed back.
  */
 export async function POST(request: NextRequest) {
   const secret = request.headers.get('x-revalidate-secret');
@@ -37,16 +49,37 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body.' }, { status: 400 });
   }
 
-  const { orgId, pageSlug } = (body ?? {}) as { orgId?: string; pageSlug?: string };
-  if (!orgId || !pageSlug) {
+  const { tags } = (body ?? {}) as { tags?: unknown };
+
+  if (!Array.isArray(tags) || tags.length === 0) {
     return NextResponse.json(
-      { error: 'Body must include both `orgId` and `pageSlug`.' },
+      { error: 'Body must include a non-empty `tags` array of strings.' },
       { status: 400 },
     );
   }
 
-  const path = pageSlug === 'homepage' ? '/' : `/${pageSlug}`;
-  revalidatePath(path);
+  const cleaned = Array.from(
+    new Set(
+      tags.filter((t): t is string => typeof t === 'string' && t.length > 0 && t.length <= 256),
+    ),
+  );
 
-  return NextResponse.json({ revalidated: true, orgId, path });
+  if (cleaned.length === 0) {
+    return NextResponse.json(
+      { error: 'Body `tags` must contain at least one non-empty string \u2264 256 chars.' },
+      { status: 400 },
+    );
+  }
+
+  // Next.js 16 requires a `cacheLife` profile as the second argument.
+  // `'max'` is the "purge immediately" equivalent of the old single-argument
+  // `revalidateTag(tag)` behavior — the only one that makes sense for an
+  // on-demand publish hook (we want the next render to fetch fresh data, not
+  // some negotiated stale window). See:
+  //   https://nextjs.org/docs/messages/revalidate-tag-single-arg
+  for (const tag of cleaned) {
+    revalidateTag(tag, 'max');
+  }
+
+  return NextResponse.json({ revalidated: true, tags: cleaned });
 }
