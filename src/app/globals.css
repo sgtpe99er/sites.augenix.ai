@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Brand theming via CSS custom properties.
+ *
+ * The Sites root layout reads each org's `brand_colors` and `brand_fonts`
+ * JSONB columns and overrides these values inline on the <html> element. The
+ * defaults below match the Augenix design system ("The Digital Atelier" — see
+ * app.augenix.ai/DESIGN.md).
+ */
+:root {
+  /* Brand colors */
+  --brand-primary: #0f172a;
+  --brand-secondary: #475569;
+  --brand-accent: #2563eb;
+  --brand-background: #f7f9fb;
+  --brand-text: #0f172a;
+
+  /* Brand fonts (system stacks until org-supplied fonts are loaded) */
+  --brand-font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, sans-serif;
+  --brand-font-serif: 'Newsreader', ui-serif, Georgia, 'Times New Roman', serif;
+}
+
+html,
+body {
+  background-color: var(--brand-background);
+  color: var(--brand-text);
+}
+
+body {
+  font-family: var(--brand-font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
