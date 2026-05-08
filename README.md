@@ -48,6 +48,144 @@ The shared secret value lives in:
 - `sites.augenix.ai` Vercel project → `REVALIDATE_SECRET`
 - `app.augenix.ai`  Vercel project → `SITES_REVALIDATE_SECRET`
 
+## Section component library
+
+The Dashboard's AI Command Center writes each page as a freeform JSON array
+of sections (see app.augenix.ai PRD §7.1). Sites looks up `section.type` in
+`src/components/sections/SectionRenderer.tsx` and renders the matching typed
+component; unknown types (or known types whose `content` is malformed) fall
+through to `GenericSection`, which prints the structured payload as
+labeled key/value pairs.
+
+The 8 registered types are listed below with their expected `content`
+shape. The Dashboard's AI prompt mirrors this contract — when adding,
+removing, or renaming a section, update the prompt and this README in
+the same change.
+
+Every type's parser tolerates missing/optional fields; a section only
+falls through to `GenericSection` when a hard requirement (marked
+**required** below) is missing or wrong-shaped.
+
+### `hero`
+
+```json
+{
+  "headline":         "string (required)",
+  "subheadline":      "string",
+  "ctaText":          "string",
+  "ctaLink":          "string (URL)",
+  "backgroundImage":  "string (URL)",
+  "alignment":        "'left' | 'center' (default: 'center')"
+}
+```
+
+### `text_block`
+
+```json
+{
+  "heading": "string",
+  "body":    "string (required) — split on blank lines into <p> tags"
+}
+```
+
+### `image_text`
+
+```json
+{
+  "heading":       "string",
+  "body":          "string (required)",
+  "imageUrl":      "string (required, URL)",
+  "imageAlt":      "string",
+  "imagePosition": "'left' | 'right' (default: 'right')",
+  "ctaText":       "string",
+  "ctaLink":       "string (URL)"
+}
+```
+
+### `multi_column`
+
+```json
+{
+  "heading":    "string",
+  "subheading": "string",
+  "columns": [
+    {
+      "title":       "string (required)",
+      "description": "string (required)",
+      "icon":        "string (single emoji or short character)"
+    }
+  ]
+}
+```
+
+`columns` is **required** and must contain at least one valid column.
+Grid layout adapts: 1, 2, 3, or 4-up depending on `columns.length`.
+
+### `faq_accordion`
+
+```json
+{
+  "heading": "string",
+  "items": [
+    { "question": "string (required)", "answer": "string (required)" }
+  ]
+}
+```
+
+`items` is **required** with at least one valid pair. Uses native
+`<details>`/`<summary>` so it ships zero client JS.
+
+### `cta_banner`
+
+```json
+{
+  "headline":    "string (required)",
+  "subheadline": "string",
+  "ctaText":     "string (required)",
+  "ctaLink":     "string (required, URL)",
+  "variant":     "'primary' | 'accent' (default: 'primary')"
+}
+```
+
+### `testimonials`
+
+```json
+{
+  "heading": "string",
+  "items": [
+    {
+      "quote":  "string (required)",
+      "author": "string (required)",
+      "role":   "string",
+      "rating": "number 1-5 (clamped, rounded)",
+      "avatar": "string (URL)"
+    }
+  ]
+}
+```
+
+`items` is **required** with at least one valid testimonial.
+
+### `contact_form`
+
+```json
+{
+  "heading":     "string",
+  "description": "string",
+  "fields":      "Array<'name'|'email'|'phone'|'company'|'message'>",
+  "submitLabel": "string (default: 'Send message')",
+  "submitUrl":   "string (default: '/api/contact')"
+}
+```
+
+Renders as a static `<form action method=\"POST\">`. The Sites repo does
+not yet ship a `/api/contact` endpoint — wiring form delivery to the
+Dashboard's `/api/webhooks/form` ingest is a follow-up.
+
+If `fields` is omitted, the default field set is
+`['name', 'email', 'message']`. Unknown field strings are silently
+dropped.
+
 ## Local dev
 
 ```
