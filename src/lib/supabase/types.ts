@@ -57,7 +57,20 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      get_org_for_host: {
+        Args: { host: string };
+        Returns: Array<{
+          id: string;
+          name: string;
+          slug: string;
+          custom_domain: string | null;
+          logo_url: string | null;
+          brand_colors: Record<string, string> | null;
+          brand_fonts: Record<string, string> | null;
+        }>;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
