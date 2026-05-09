@@ -60,9 +60,5 @@ export default async function ClientPage({ params }: PageProps) {
 
   const sections = page.content?.sections ?? [];
 
-  return (
-    <main>
-      <SectionRenderer sections={sections} />
-    </main>
-  );
+  return <SectionRenderer sections={sections} />;
 }
