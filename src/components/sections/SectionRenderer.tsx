@@ -38,12 +38,35 @@ const SECTION_COMPONENTS: Record<string, React.ComponentType<{ section: PageSect
   faq_accordion: FaqAccordionSection,
   cta_banner: CtaBannerSection,
   testimonials: TestimonialsSection,
-  contact_form: ContactFormSection,
   header: HeaderSection,
   footer: FooterSection,
+  // `contact_form` is intentionally NOT in this map. ContactFormSection takes
+  // an extra `submitted` prop, so we wrap it inline below rather than through
+  // the type-uniform component map (which keeps the map signature simple for
+  // the other 9 renderers).
 };
 
-function renderSection(section: PageSection) {
+interface SectionRendererProps {
+  sections: PageSection[];
+  /**
+   * Section id whose contact form was just submitted (carried through
+   * `?contact=submitted&s=<id>` on the page URL). Only the matching
+   * `ContactFormSection` instance switches to its thank-you panel; all
+   * other sections render normally.
+   */
+  submittedSectionId?: string;
+}
+
+function renderSection(section: PageSection, submittedSectionId?: string) {
+  if (section.type === 'contact_form') {
+    return (
+      <ContactFormSection
+        key={section.id}
+        section={section}
+        submitted={submittedSectionId === section.id}
+      />
+    );
+  }
   const Component = SECTION_COMPONENTS[section.type] ?? GenericSection;
   return <Component key={section.id} section={section} />;
 }
@@ -57,7 +80,7 @@ function renderSection(section: PageSection) {
  * Every other section renders in document order inside `<main>`. Pages with
  * no `header`/`footer` section emit no chrome at all (per PRD §17 Q5).
  */
-export function SectionRenderer({ sections }: { sections: PageSection[] }) {
+export function SectionRenderer({ sections, submittedSectionId }: SectionRendererProps) {
   const headerIdx = sections.findIndex((s) => s.type === 'header');
   let footerIdx = -1;
   for (let i = sections.length - 1; i >= 0; i--) {
@@ -73,9 +96,9 @@ export function SectionRenderer({ sections }: { sections: PageSection[] }) {
 
   return (
     <>
-      {headerSection ? renderSection(headerSection) : null}
-      <main>{bodySections.map(renderSection)}</main>
-      {footerSection ? renderSection(footerSection) : null}
+      {headerSection ? renderSection(headerSection, submittedSectionId) : null}
+      <main>{bodySections.map((s) => renderSection(s, submittedSectionId))}</main>
+      {footerSection ? renderSection(footerSection, submittedSectionId) : null}
     </>
   );
 }
