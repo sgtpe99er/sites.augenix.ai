@@ -10,15 +10,15 @@ import { NextResponse } from 'next/server';
  * `proxy` instead of `middleware`. Behavior is identical.
  *
  * The Sites project resolves the host → `organizations.custom_domain` lookup
- * inside the catch-all page (`src/app/[...slug]/page.tsx`) so that ISR caching
- * keys are scoped per host. Per PRD §9, no auth happens here — Sites visitors
- * are anonymous.
+ * inside the catch-all page (`src/app/[[...slug]]/page.tsx`) so that ISR
+ * caching keys are scoped per host. Per PRD §9, no auth happens here — Sites
+ * visitors are anonymous.
  *
  * Notes:
  * - We strip a leading `www.` so that apex and `www` map to the same org.
  * - We strip the port so localhost / preview environments resolve cleanly.
  * - The canonical Sites URL (`sites.augenix.ai`) is never expected to match an
- *   org row; it falls through to the static landing at `src/app/page.tsx`.
+ *   org row; the catch-all renders a static explainer landing for it instead.
  */
 export function proxy(request: NextRequest) {
   const host = request.headers.get('host') ?? '';

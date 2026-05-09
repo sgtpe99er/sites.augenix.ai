@@ -7,13 +7,13 @@ const SITES_HOST = (process.env.NEXT_PUBLIC_SITES_HOST ?? 'sites.augenix.ai').to
 
 /**
  * Resolve the org for the not-found page. Mirrors the resolution path in
- * `src/app/layout.tsx` and `src/app/[...slug]/page.tsx`. The lookup is
+ * `src/app/layout.tsx` and `src/app/[[...slug]]/page.tsx`. The lookup is
  * cached per host (see `src/lib/org.ts`) so calling it here on top of the
  * layout's resolution is a cache hit, not a second DB round-trip.
  *
  * Note: when Next.js renders a 404 it re-evaluates `not-found.tsx` AND the
  * layout, so reading `headers()` here works regardless of whether the
- * `notFound()` call originated from the [...slug] page or any other route.
+ * `notFound()` call originated from the catch-all page or any other route.
  */
 async function getOrgForRequest() {
   const host = (await headers()).get('x-augenix-host');
