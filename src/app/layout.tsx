@@ -3,14 +3,48 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 
-import { getOrgByDomain } from '@/lib/org';
-
-export const metadata: Metadata = {
-  title: 'Augenix Sites',
-  description: 'Powered by Augenix.',
-};
+import { getOrgByDomain, type OrgLookupRow } from '@/lib/org';
 
 const SITES_HOST = (process.env.NEXT_PUBLIC_SITES_HOST ?? 'sites.augenix.ai').toLowerCase();
+
+/**
+ * Resolve the org for the incoming request. Wraps the host-header read +
+ * SITES_HOST short-circuit + getOrgByDomain lookup in one place so both
+ * `generateMetadata` and the layout component go through the same path. The
+ * underlying lookup is cached per-host (see `src/lib/org.ts`), so calling
+ * this twice in one request is free.
+ */
+async function resolveOrgForRequest(): Promise<OrgLookupRow | null> {
+  const incomingHost = (await headers()).get('x-augenix-host');
+  if (!incomingHost || incomingHost === SITES_HOST) return null;
+  return getOrgByDomain(incomingHost);
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const org = await resolveOrgForRequest();
+
+  // Default branding for the canonical Sites root and unclaimed hosts.
+  if (!org) {
+    return {
+      title: 'Augenix Sites',
+      description: 'Powered by Augenix.',
+    };
+  }
+
+  // Per-org favicon. We wire the org's logo into both `icon` (the standard
+  // favicon slot) and `apple-icon` (the iOS home-screen / share-sheet slot)
+  // when present. Logo aspect ratios vary client-to-client, so we accept
+  // whatever URL the org has uploaded and let the browser scale it; we
+  // intentionally don't slot the URL into a sized rel="icon" type attribute.
+  const icons = org.logo_url
+    ? { icon: org.logo_url, apple: org.logo_url }
+    : undefined;
+
+  return {
+    title: { default: org.name, template: `%s | ${org.name}` },
+    icons,
+  };
+}
 
 interface BrandStyle {
   ['--brand-primary']?: string;
@@ -38,14 +72,7 @@ function buildBrandStyle(
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const incomingHost = (await headers()).get('x-augenix-host');
-
-  // The canonical Sites URL itself is not a client domain — render with the
-  // default Augenix theme. Only do the lookup when the visitor is on a
-  // potentially-claimed custom domain.
-  const isClientDomain = incomingHost ? incomingHost !== SITES_HOST : false;
-  const org = isClientDomain ? await getOrgByDomain(incomingHost) : null;
-
+  const org = await resolveOrgForRequest();
   const style = org ? buildBrandStyle(org.brand_colors, org.brand_fonts) : {};
 
   return (
