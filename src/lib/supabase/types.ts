@@ -70,6 +70,17 @@ export interface Database {
           brand_fonts: Record<string, string> | null;
         }>;
       };
+      submit_contact_form: {
+        Args: {
+          p_host: string;
+          p_name: string;
+          p_email: string;
+          p_phone: string | null;
+          p_company: string | null;
+          p_message: string | null;
+        };
+        Returns: string | null;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

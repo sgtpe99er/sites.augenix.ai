@@ -11,6 +11,13 @@ const SITES_HOST = (process.env.NEXT_PUBLIC_SITES_HOST ?? 'sites.augenix.ai').to
 
 interface PageProps {
   params: Promise<{ slug?: string[] }>;
+  /**
+   * Standard Next.js search-param prop. We only inspect `?contact=submitted`
+   * + `?s=<sectionId>`, which the `/api/contact` route handler appends on a
+   * successful form submit so the matching `ContactFormSection` can render
+   * its thank-you panel.
+   */
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
 /**
@@ -59,7 +66,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   });
 }
 
-export default async function ClientPage({ params }: PageProps) {
+export default async function ClientPage({ params, searchParams }: PageProps) {
   const slug = slugFromParams(await params);
   const resolved = await resolveOrgFromHeaders();
   if (!resolved) notFound();
@@ -69,5 +76,13 @@ export default async function ClientPage({ params }: PageProps) {
 
   const sections = page.content?.sections ?? [];
 
-  return <SectionRenderer sections={sections} />;
+  // Resolve a "just submitted" section id from the query so the matching
+  // `ContactFormSection` flips to its thank-you panel. We only honor the
+  // `s` param when `contact=submitted` is also present so a stray `?s=...`
+  // can't be smuggled in to suppress a real form.
+  const sp = (await searchParams) ?? {};
+  const submittedRaw = sp.contact === 'submitted' ? sp.s : undefined;
+  const submittedSectionId = typeof submittedRaw === 'string' ? submittedRaw : undefined;
+
+  return <SectionRenderer sections={sections} submittedSectionId={submittedSectionId} />;
 }
