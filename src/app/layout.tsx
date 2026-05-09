@@ -1,9 +1,38 @@
 import './globals.css';
 
 import type { Metadata } from 'next';
+import { Inter, Newsreader } from 'next/font/google';
 import { headers } from 'next/headers';
 
 import { getOrgByDomain, type OrgLookupRow } from '@/lib/org';
+
+/**
+ * Default platform fonts, self-hosted via `next/font`.
+ *
+ * `next/font/google` downloads the woff2 files at build time and serves them
+ * from the same origin as the app, which:
+ *   - eliminates the Google Fonts DNS / TLS / fetch round-trip,
+ *   - sets `<link rel="preload">` automatically (no FOUT),
+ *   - applies `font-display: swap` and a fallback metric override to keep CLS
+ *     close to 0 while the woff2 is still in flight.
+ *
+ * The CSS variables (`--font-inter`, `--font-newsreader`) feed the
+ * `--brand-font-sans` / `--brand-font-serif` cascade in `globals.css`. Per-org
+ * brand fonts (set as inline `style` on `<html>`) still win on specificity, so
+ * a client supplying their own font stack via `brand_fonts` overrides the
+ * default — the default just becomes the platform fallback.
+ */
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
+
+const newsreader = Newsreader({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-newsreader',
+});
 
 const SITES_HOST = (process.env.NEXT_PUBLIC_SITES_HOST ?? 'sites.augenix.ai').toLowerCase();
 
@@ -76,7 +105,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const style = org ? buildBrandStyle(org.brand_colors, org.brand_fonts) : {};
 
   return (
-    <html lang="en" style={style as React.CSSProperties}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${newsreader.variable}`}
+      style={style as React.CSSProperties}
+    >
       <body className="min-h-screen bg-brand-background text-brand-text antialiased">
         {children}
       </body>

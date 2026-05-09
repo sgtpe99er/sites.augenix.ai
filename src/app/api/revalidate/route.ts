@@ -3,6 +3,14 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 /**
+ * Run on the Vercel Edge Runtime — this handler does no I/O beyond a constant-
+ * time secret comparison and an in-process `revalidateTag(...)` call, so the
+ * faster cold-start + lower latency of the edge runtime is a free win. No
+ * Node-only APIs are used.
+ */
+export const runtime = 'edge';
+
+/**
  * On-demand revalidation endpoint called by the Dashboard
  * (`app.augenix.ai`) after a user approves an AI edit, publishes a page, or
  * changes org branding in the Command Center.
