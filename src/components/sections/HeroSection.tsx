@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 import type { PageSection } from '@/types/content';
 
 import { extractString } from './_helpers';
@@ -59,11 +61,13 @@ export function HeroSection({ section }: { section: PageSection }) {
     >
       {data.backgroundImage ? (
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          <Image
             src={data.backgroundImage}
             alt=""
-            className="absolute inset-0 -z-10 h-full w-full object-cover opacity-50"
+            fill
+            priority
+            sizes="100vw"
+            className="-z-10 object-cover opacity-50"
           />
           <div className="absolute inset-0 -z-10 bg-gradient-to-b from-black/40 to-black/60" />
         </>

@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 import type { PageSection } from '@/types/content';
 
 import { extractArray, extractNumber, extractObject, extractString } from './_helpers';
@@ -109,10 +111,12 @@ export function TestimonialsSection({ section }: { section: PageSection }) {
               </div>
               <figcaption className="flex items-center gap-3">
                 {item.avatar ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={item.avatar}
                     alt=""
+                    width={40}
+                    height={40}
+                    sizes="40px"
                     className="h-10 w-10 rounded-full object-cover"
                   />
                 ) : null}
