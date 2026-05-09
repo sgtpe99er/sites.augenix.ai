@@ -2,9 +2,12 @@ import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 /**
- * Sites middleware — maps the incoming `Host` header to a normalized internal
+ * Sites proxy — maps the incoming `Host` header to a normalized internal
  * domain string and forwards it to downstream pages via the `x-augenix-host`
  * header.
+ *
+ * Renamed from `middleware.ts` to `proxy.ts` in Next.js 16; the export is
+ * `proxy` instead of `middleware`. Behavior is identical.
  *
  * The Sites project resolves the host → `organizations.custom_domain` lookup
  * inside the catch-all page (`src/app/[...slug]/page.tsx`) so that ISR caching
@@ -17,7 +20,7 @@ import { NextResponse } from 'next/server';
  * - The canonical Sites URL (`sites.augenix.ai`) is never expected to match an
  *   org row; it falls through to the static landing at `src/app/page.tsx`.
  */
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const host = request.headers.get('host') ?? '';
   const normalized = host.toLowerCase().replace(/^www\./, '').split(':')[0];
 
