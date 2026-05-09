@@ -3,8 +3,9 @@ import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 
 import { SectionRenderer } from '@/components/sections/SectionRenderer';
-import { getOrgByDomain } from '@/lib/org';
+import { getOrgByDomain, type OrgLookupRow } from '@/lib/org';
 import { getPublishedPage } from '@/lib/pages';
+import { buildPageMetadata } from '@/lib/seo';
 
 const SITES_HOST = (process.env.NEXT_PUBLIC_SITES_HOST ?? 'sites.augenix.ai').toLowerCase();
 
@@ -27,35 +28,43 @@ function slugFromParams(params: { slug?: string[] }): string {
   return params.slug.join('/');
 }
 
-async function resolveOrgFromHeaders(): Promise<{ orgId: string; orgName: string } | null> {
+async function resolveOrgFromHeaders(): Promise<{ host: string; org: OrgLookupRow } | null> {
   const host = (await headers()).get('x-augenix-host');
   if (!host || host === SITES_HOST) return null;
 
   const org = await getOrgByDomain(host);
   if (!org) return null;
 
-  return { orgId: org.id, orgName: org.name };
+  return { host, org };
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const slug = slugFromParams(await params);
-  const org = await resolveOrgFromHeaders();
-  if (!org) return {};
+  const resolved = await resolveOrgFromHeaders();
+  if (!resolved) return {};
 
-  const page = await getPublishedPage(org.orgId, slug);
+  const page = await getPublishedPage(resolved.org.id, slug);
 
-  return {
-    title: page?.title ?? org.orgName,
-    description: page?.meta_description ?? undefined,
-  };
+  // No published page at this slug — emit just a title so search engines
+  // / social previews don't show a blank string. The page itself will 404.
+  if (!page) {
+    return { title: resolved.org.name };
+  }
+
+  return buildPageMetadata({
+    host: resolved.host,
+    slug,
+    org: resolved.org,
+    page,
+  });
 }
 
 export default async function ClientPage({ params }: PageProps) {
   const slug = slugFromParams(await params);
-  const org = await resolveOrgFromHeaders();
-  if (!org) notFound();
+  const resolved = await resolveOrgFromHeaders();
+  if (!resolved) notFound();
 
-  const page = await getPublishedPage(org.orgId, slug);
+  const page = await getPublishedPage(resolved.org.id, slug);
   if (!page) notFound();
 
   const sections = page.content?.sections ?? [];
