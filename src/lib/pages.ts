@@ -8,6 +8,15 @@ import { orgByIdTag, pageTag } from './cache-tags';
 import { getSupabaseServerClient } from './supabase/server-client';
 
 /**
+ * Slug + last-touched timestamp for one published page. Returned by
+ * `listPublishedPages` and used to build sitemap entries.
+ */
+export interface PublishedPageRef {
+  slug: string;
+  updated_at: string;
+}
+
+/**
  * Underlying Supabase fetch for a single published page. The "Anyone can read
  * published pages" RLS policy on `public.pages` (added in migration
  * 20260508155400_sites_anon_read.sql) lets the anon role read this row
@@ -56,6 +65,46 @@ export async function getPublishedPage(orgId: string, slug: string): Promise<Pag
     ['sites:published-page', orgId, slug],
     {
       tags: [pageTag(orgId, slug), orgByIdTag(orgId)],
+      revalidate: 60 * 60,
+    },
+  );
+
+  return cached();
+}
+
+/**
+ * Underlying Supabase fetch for the per-org sitemap listing. Selects only the
+ * minimum columns sitemap.xml needs (`slug`, `updated_at`) so we don't pull
+ * the full content blob into memory just to enumerate URLs.
+ */
+async function fetchPublishedPagesForOrg(orgId: string): Promise<PublishedPageRef[]> {
+  const supabase = getSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from('pages')
+    .select('slug, updated_at')
+    .eq('org_id', orgId)
+    .eq('is_published', true);
+
+  if (error || !data) return [];
+
+  return data.map((row) => ({ slug: row.slug, updated_at: row.updated_at }));
+}
+
+/**
+ * List every published page for an organization (slug + updated_at only).
+ *
+ * Used to build the per-org `/sitemap.xml`. Tagged only with `org:id:${orgId}`
+ * because the per-page tag uses `page:${orgId}:${slug}` granularity which the
+ * Dashboard already busts on publish/unpublish — the sitemap is a coarse view
+ * over the same source-of-truth data, and the org-level bust covers it.
+ */
+export async function listPublishedPages(orgId: string): Promise<PublishedPageRef[]> {
+  const cached = unstable_cache(
+    () => fetchPublishedPagesForOrg(orgId),
+    ['sites:published-pages-by-org', orgId],
+    {
+      tags: [orgByIdTag(orgId)],
       revalidate: 60 * 60,
     },
   );
