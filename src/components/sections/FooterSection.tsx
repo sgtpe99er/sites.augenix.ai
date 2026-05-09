@@ -9,7 +9,7 @@ import { GenericSection } from './GenericSection';
  * Bottom-of-page chrome: optional link columns + tagline + copyright +
  * optional social links. Renders inside a semantic `<footer>` element.
  * Pages opt in by including a `footer` section at the bottom of their
- * `content.sections` array; pages without one render no footer (per PRD §17
+ * `content` array; pages without one render no footer (per PRD §17
  * we don't impose implicit chrome).
  *
  * Content shape:

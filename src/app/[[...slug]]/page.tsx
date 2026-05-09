@@ -117,7 +117,7 @@ export default async function ClientPage({ params, searchParams }: PageProps) {
   const page = await getPublishedPage(resolved.org.id, slug);
   if (!page) notFound();
 
-  const sections = page.content?.sections ?? [];
+  const sections = page.content ?? [];
 
   // Resolve a "just submitted" section id from the query so the matching
   // `ContactFormSection` flips to its thank-you panel. We only honor the
