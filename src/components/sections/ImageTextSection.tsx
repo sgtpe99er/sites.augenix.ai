@@ -1,3 +1,5 @@
+import Image from 'next/image';
+
 import type { PageSection } from '@/types/content';
 
 import { extractString, splitParagraphs } from './_helpers';
@@ -83,12 +85,15 @@ export function ImageTextSection({ section }: { section: PageSection }) {
           ) : null}
         </div>
         <div className={`order-2 ${imageOrder}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={data.imageUrl}
-            alt={data.imageAlt}
-            className="aspect-[4/3] w-full rounded-md object-cover shadow-sm"
-          />
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md shadow-sm">
+            <Image
+              src={data.imageUrl}
+              alt={data.imageAlt}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover"
+            />
+          </div>
         </div>
       </div>
     </section>
