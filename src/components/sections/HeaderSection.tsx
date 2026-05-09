@@ -11,7 +11,7 @@ import { GenericSection } from './GenericSection';
  *
  * Top-of-page chrome: logo + horizontal nav + optional CTA. Renders inside a
  * semantic `<header>` element. Pages opt in by including a `header` section
- * at the top of their `content.sections` array; pages without one render no
+ * at the top of their `content` array; pages without one render no
  * header at all (per PRD §17 we don't impose implicit chrome).
  *
  * Content shape:

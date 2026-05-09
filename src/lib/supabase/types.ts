@@ -23,9 +23,15 @@ type OrganizationRow = {
   plan: string | null;
 };
 
-type PageContentJson = {
-  sections: Array<{ id: string; type: string; content: Record<string, unknown> }>;
-};
+// `pages.content` is stored as a bare JSONB array of sections (NOT wrapped
+// in a `{ sections: [...] }` object). See `src/types/content.ts` for the
+// authoritative convention. We keep this DB-row type intentionally narrow
+// — the renderer's strict types live next to the renderer.
+type PageContentJson = Array<{
+  id: string;
+  type: string;
+  content: Record<string, unknown>;
+}>;
 
 type PageRow = {
   id: string;

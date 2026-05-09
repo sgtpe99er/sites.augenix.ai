@@ -19,7 +19,7 @@ import type { OrgLookupRow } from './org';
  * than trusted via cast.
  */
 function pickPageImage(page: PageRecord): string | null {
-  const sections = page.content?.sections;
+  const sections = page.content;
   if (!sections || sections.length === 0) return null;
 
   for (const section of sections) {
