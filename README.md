@@ -173,14 +173,18 @@ Grid layout adapts: 1, 2, 3, or 4-up depending on `columns.length`.
   "heading":     "string",
   "description": "string",
   "fields":      "Array<'name'|'email'|'phone'|'company'|'message'>",
-  "submitLabel": "string (default: 'Send message')",
-  "submitUrl":   "string (default: '/api/contact')"
+  "submitLabel": "string (default: 'Send message')"
 }
 ```
 
-Renders as a static `<form action method=\"POST\">`. The Sites repo does
-not yet ship a `/api/contact` endpoint — wiring form delivery to the
-Dashboard's `/api/webhooks/form` ingest is a follow-up.
+Renders as a static `<form action method="POST">` that always posts to
+the canonical `/api/contact` route handler (`src/app/api/contact/route.ts`),
+which writes to the `contacts` table via the `submit_contact_form`
+SECURITY DEFINER RPC and 303s back with `?contact=submitted&s=<sectionId>`.
+The submit endpoint is intentionally NOT overridable from section
+content — see the doc-comment on `ContactFormSection.tsx` for the
+history (TL;DR: AI-generated `submitUrl` values broke real customer
+forms).
 
 If `fields` is omitted, the default field set is
 `['name', 'email', 'message']`. Unknown field strings are silently

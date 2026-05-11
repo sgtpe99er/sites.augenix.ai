@@ -7,14 +7,21 @@ import { GenericSection } from './GenericSection';
  * Contact form — `type: "contact_form"`
  *
  * A heading + stacked form. Renders fully server-side as a static HTML
- * `<form>` that POSTs to `submitUrl` (default: `/api/contact`). The
- * default endpoint is wired up in `src/app/api/contact/route.ts` and
- * writes to the `contacts` table via the `submit_contact_form`
+ * `<form>` that POSTs to the canonical `/api/contact` route handler,
+ * which writes to the `contacts` table via the `submit_contact_form`
  * SECURITY DEFINER RPC. After a successful submit, the route redirects
  * back to the page with `?contact=submitted&s=<sectionId>`, which the
  * page reader reads and threads through to this component as
  * `submitted={true}` — at which point we render a thank-you panel
  * instead of the form.
+ *
+ * The submit endpoint is intentionally NOT overridable from the
+ * section's content. Earlier iterations exposed a `submitUrl` field as
+ * an escape hatch, but in practice the AI Command Center occasionally
+ * invented plausible-but-wrong values (e.g. `/submit-contact`), so the
+ * form would 404 on submit. Hardcoding the endpoint guarantees every
+ * `contact_form` section reaches the correct backend regardless of
+ * what the AI writes into the content blob.
  *
  * Content shape:
  * ```
@@ -22,8 +29,7 @@ import { GenericSection } from './GenericSection';
  *   "heading"?: string,
  *   "description"?: string,
  *   "fields"?: ("name" | "email" | "phone" | "company" | "message")[],
- *   "submitLabel"?: string,
- *   "submitUrl"?: string
+ *   "submitLabel"?: string
  * }
  * ```
  *
@@ -31,6 +37,13 @@ import { GenericSection } from './GenericSection';
  */
 const ALLOWED_FIELDS = ['name', 'email', 'phone', 'company', 'message'] as const;
 type FieldKey = (typeof ALLOWED_FIELDS)[number];
+
+/**
+ * The single canonical endpoint that every rendered `contact_form` posts
+ * to. Wired up in `src/app/api/contact/route.ts`. Intentionally not
+ * configurable from section content — see the component doc-comment.
+ */
+const CONTACT_SUBMIT_URL = '/api/contact';
 
 const FIELD_META: Record<FieldKey, { label: string; type: string; multiline?: boolean }> = {
   name: { label: 'Name', type: 'text' },
@@ -45,7 +58,6 @@ interface ContactFormContent {
   description?: string;
   fields: FieldKey[];
   submitLabel: string;
-  submitUrl: string;
 }
 
 function parseField(item: unknown): FieldKey | undefined {
@@ -64,7 +76,6 @@ function parseContactForm(content: Record<string, unknown>): ContactFormContent 
     description: extractString(content.description),
     fields,
     submitLabel: extractString(content.submitLabel) ?? 'Send message',
-    submitUrl: extractString(content.submitUrl) ?? '/api/contact',
   };
 }
 
@@ -110,7 +121,7 @@ export function ContactFormSection({ section, submitted }: ContactFormSectionPro
           </div>
         ) : (
           <form
-            action={data.submitUrl}
+            action={CONTACT_SUBMIT_URL}
             method="POST"
             className="flex flex-col gap-5 rounded-md border border-brand-text/10 bg-white p-6 shadow-sm"
           >
