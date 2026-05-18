@@ -13,6 +13,7 @@ export interface OrgLookupRow {
   logo_url: string | null;
   brand_colors: Record<string, string> | null;
   brand_fonts: Record<string, string> | null;
+  design_config: Record<string, unknown> | null;
 }
 
 /**
