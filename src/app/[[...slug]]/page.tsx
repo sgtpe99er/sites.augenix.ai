@@ -132,6 +132,8 @@ export default async function ClientPage({ params, searchParams }: PageProps) {
       sections={sections}
       submittedSectionId={submittedSectionId}
       designConfig={resolved.org.design_config}
+      orgId={resolved.org.id}
+      pageSlug={slug}
     />
   );
 }

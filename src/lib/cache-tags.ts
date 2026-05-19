@@ -36,3 +36,7 @@ export function orgByIdTag(orgId: string): string {
 export function pageTag(orgId: string, slug: string): string {
   return `page:${orgId}:${slug}`;
 }
+
+export function faqsTag(orgId: string, slug: string): string {
+  return `faqs:${orgId}:${slug}`;
+}
