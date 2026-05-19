@@ -55,9 +55,15 @@ interface SectionRendererProps {
    * other sections render normally.
    */
   submittedSectionId?: string;
+  /** Org's design_config for text-logo rendering in HeaderSection. */
+  designConfig?: Record<string, unknown> | null;
 }
 
-function renderSection(section: PageSection, submittedSectionId?: string) {
+function renderSection(
+  section: PageSection,
+  submittedSectionId?: string,
+  designConfig?: Record<string, unknown> | null,
+) {
   if (section.type === 'contact_form') {
     return (
       <ContactFormSection
@@ -66,6 +72,9 @@ function renderSection(section: PageSection, submittedSectionId?: string) {
         submitted={submittedSectionId === section.id}
       />
     );
+  }
+  if (section.type === 'header') {
+    return <HeaderSection key={section.id} section={section} designConfig={designConfig} />;
   }
   const Component = SECTION_COMPONENTS[section.type] ?? GenericSection;
   return <Component key={section.id} section={section} />;
@@ -80,7 +89,7 @@ function renderSection(section: PageSection, submittedSectionId?: string) {
  * Every other section renders in document order inside `<main>`. Pages with
  * no `header`/`footer` section emit no chrome at all (per PRD §17 Q5).
  */
-export function SectionRenderer({ sections, submittedSectionId }: SectionRendererProps) {
+export function SectionRenderer({ sections, submittedSectionId, designConfig }: SectionRendererProps) {
   const headerIdx = sections.findIndex((s) => s.type === 'header');
   let footerIdx = -1;
   for (let i = sections.length - 1; i >= 0; i--) {
@@ -96,7 +105,7 @@ export function SectionRenderer({ sections, submittedSectionId }: SectionRendere
 
   return (
     <>
-      {headerSection ? renderSection(headerSection, submittedSectionId) : null}
+      {headerSection ? renderSection(headerSection, submittedSectionId, designConfig) : null}
       <main>{bodySections.map((s) => renderSection(s, submittedSectionId))}</main>
       {footerSection ? renderSection(footerSection, submittedSectionId) : null}
     </>

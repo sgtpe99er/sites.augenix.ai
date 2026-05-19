@@ -104,12 +104,23 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const org = await resolveOrgForRequest();
   const style = org ? buildBrandStyle(org.brand_colors, org.brand_fonts) : {};
 
+  // If the org has a design_config with a logo font, load it via Google Fonts.
+  const logoFont = org?.design_config
+    ? (org.design_config as { logo?: { font?: string; weight?: number } }).logo
+    : null;
+  const logoFontUrl = logoFont?.font
+    ? `https://fonts.googleapis.com/css2?family=${logoFont.font.replace(/ /g, '+')}:wght@${logoFont.weight ?? 700}&display=swap`
+    : null;
+
   return (
     <html
       lang="en"
       className={`${inter.variable} ${newsreader.variable}`}
       style={style as React.CSSProperties}
     >
+      <head>
+        {logoFontUrl ? <link href={logoFontUrl} rel="stylesheet" /> : null}
+      </head>
       <body className="min-h-screen bg-brand-background text-brand-text antialiased">
         {children}
       </body>

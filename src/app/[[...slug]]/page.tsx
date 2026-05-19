@@ -127,5 +127,11 @@ export default async function ClientPage({ params, searchParams }: PageProps) {
   const submittedRaw = sp.contact === 'submitted' ? sp.s : undefined;
   const submittedSectionId = typeof submittedRaw === 'string' ? submittedRaw : undefined;
 
-  return <SectionRenderer sections={sections} submittedSectionId={submittedSectionId} />;
+  return (
+    <SectionRenderer
+      sections={sections}
+      submittedSectionId={submittedSectionId}
+      designConfig={resolved.org.design_config}
+    />
+  );
 }

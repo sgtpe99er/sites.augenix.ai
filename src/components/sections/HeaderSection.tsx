@@ -69,9 +69,20 @@ function parseHeader(content: Record<string, unknown>): HeaderContent | null {
   return { logo, siteName, navLinks, cta, sticky };
 }
 
-export function HeaderSection({ section }: { section: PageSection }) {
+export function HeaderSection({
+  section,
+  designConfig,
+}: {
+  section: PageSection;
+  designConfig?: Record<string, unknown> | null;
+}) {
   const data = parseHeader(section.content);
   if (!data) return <GenericSection section={section} />;
+
+  // Text logo font from design_config (set by Site Builder).
+  const logoFont = !data.logo && designConfig
+    ? (designConfig as { logo?: { font?: string; weight?: number } }).logo
+    : null;
 
   const stickyClass = data.sticky ? 'sticky top-0 z-40' : '';
 
@@ -94,7 +105,17 @@ export function HeaderSection({ section }: { section: PageSection }) {
             />
           ) : null}
           {data.siteName ? (
-            <span className="font-serif text-lg font-semibold tracking-tight">
+            <span
+              className="text-lg font-semibold tracking-tight"
+              style={
+                logoFont
+                  ? {
+                      fontFamily: `'${logoFont.font}', sans-serif`,
+                      fontWeight: logoFont.weight,
+                    }
+                  : undefined
+              }
+            >
               {data.siteName}
             </span>
           ) : null}
