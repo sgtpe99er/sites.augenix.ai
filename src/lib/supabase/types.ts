@@ -77,6 +77,16 @@ export interface Database {
           design_config: Record<string, unknown> | null;
         }>;
       };
+      get_page_faqs: {
+        Args: { p_org_id: string; p_page_slug: string };
+        Returns: Array<{
+          id: string;
+          question: string;
+          answer: string;
+          sort_order: number;
+          category: string | null;
+        }>;
+      };
       submit_contact_form: {
         Args: {
           p_host: string;

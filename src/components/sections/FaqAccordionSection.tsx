@@ -1,3 +1,4 @@
+import { getPageFaqs } from '@/lib/faqs';
 import type { PageSection } from '@/types/content';
 
 import { extractArray, extractObject, extractString } from './_helpers';
@@ -6,17 +7,21 @@ import { GenericSection } from './GenericSection';
 /**
  * FAQ accordion — `type: "faq_accordion"`
  *
- * A heading + a stack of expandable question/answer pairs. Uses native
- * `<details>` / `<summary>` for collapse/expand so the section requires
- * zero client-side JavaScript and ships fully server-rendered.
+ * Supports two content modes:
  *
- * Content shape:
+ * **Inline** (original behavior):
  * ```
- * {
- *   "heading"?: string,
- *   "items": [{ "question": string, "answer": string }]
- * }
+ * { "heading"?: string, "items": [{ "question": string, "answer": string }] }
  * ```
+ *
+ * **Database** (fetches from `get_page_faqs` RPC):
+ * ```
+ * { "heading"?: string, "source": "database" }
+ * ```
+ *
+ * When `source` is `"database"`, the component fetches published FAQs from the
+ * Augenix Supabase for the current org/page and renders them with the same
+ * visual style + Schema.org FAQPage JSON-LD.
  */
 interface FaqItem {
   question: string;
@@ -43,24 +48,51 @@ function parseFaq(content: Record<string, unknown>): FaqContent | null {
   return { heading: extractString(content.heading), items };
 }
 
-export function FaqAccordionSection({ section }: { section: PageSection }) {
-  const data = parseFaq(section.content);
-  if (!data) return <GenericSection section={section} />;
+function FaqJsonLd({ items }: { items: FaqItem[] }) {
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((item) => ({
+      '@type': 'Question',
+      name: item.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.answer,
+      },
+    })),
+  };
 
   return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+    />
+  );
+}
+
+function FaqAccordionUI({
+  sectionId,
+  heading,
+  items,
+}: {
+  sectionId: string;
+  heading?: string;
+  items: FaqItem[];
+}) {
+  return (
     <section
-      data-section-id={section.id}
-      data-section-type={section.type}
+      data-section-id={sectionId}
+      data-section-type="faq_accordion"
       className="py-16"
     >
       <div className="container max-w-3xl">
-        {data.heading ? (
+        {heading ? (
           <h2 className="mb-10 font-serif text-3xl font-semibold leading-tight text-brand-text md:text-4xl">
-            {data.heading}
+            {heading}
           </h2>
         ) : null}
         <div className="divide-y divide-brand-text/10 border-y border-brand-text/10">
-          {data.items.map((item, idx) => (
+          {items.map((item, idx) => (
             <details key={idx} className="group py-5">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-lg font-medium text-brand-text">
                 <span>{item.question}</span>
@@ -76,6 +108,37 @@ export function FaqAccordionSection({ section }: { section: PageSection }) {
           ))}
         </div>
       </div>
+      <FaqJsonLd items={items} />
     </section>
   );
+}
+
+interface FaqAccordionSectionProps {
+  section: PageSection;
+  orgId?: string;
+  pageSlug?: string;
+}
+
+export async function FaqAccordionSection({ section, orgId, pageSlug }: FaqAccordionSectionProps) {
+  const source = extractString(section.content.source);
+
+  // Database mode: fetch from get_page_faqs RPC
+  if (source === 'database' && orgId && pageSlug) {
+    const faqs = await getPageFaqs(orgId, pageSlug);
+    if (faqs.length === 0) return null;
+
+    const heading = extractString(section.content.heading);
+    const items: FaqItem[] = faqs.map((f) => ({
+      question: f.question,
+      answer: f.answer,
+    }));
+
+    return <FaqAccordionUI sectionId={section.id} heading={heading ?? undefined} items={items} />;
+  }
+
+  // Inline mode: parse items from section content
+  const data = parseFaq(section.content);
+  if (!data) return <GenericSection section={section} />;
+
+  return <FaqAccordionUI sectionId={section.id} heading={data.heading} items={data.items} />;
 }

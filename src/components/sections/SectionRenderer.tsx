@@ -35,15 +35,13 @@ const SECTION_COMPONENTS: Record<string, React.ComponentType<{ section: PageSect
   text_block: TextBlockSection,
   image_text: ImageTextSection,
   multi_column: MultiColumnSection,
-  faq_accordion: FaqAccordionSection,
   cta_banner: CtaBannerSection,
   testimonials: TestimonialsSection,
   header: HeaderSection,
   footer: FooterSection,
-  // `contact_form` is intentionally NOT in this map. ContactFormSection takes
-  // an extra `submitted` prop, so we wrap it inline below rather than through
-  // the type-uniform component map (which keeps the map signature simple for
-  // the other 9 renderers).
+  // `contact_form` and `faq_accordion` are NOT in this map because they
+  // require extra props beyond `{ section }`. They are handled inline in
+  // the renderSection function below.
 };
 
 interface SectionRendererProps {
@@ -57,12 +55,18 @@ interface SectionRendererProps {
   submittedSectionId?: string;
   /** Org's design_config for text-logo rendering in HeaderSection. */
   designConfig?: Record<string, unknown> | null;
+  /** Org ID — needed for database-mode FAQ sections. */
+  orgId?: string;
+  /** Current page slug — needed for database-mode FAQ sections. */
+  pageSlug?: string;
 }
 
 function renderSection(
   section: PageSection,
   submittedSectionId?: string,
   designConfig?: Record<string, unknown> | null,
+  orgId?: string,
+  pageSlug?: string,
 ) {
   if (section.type === 'contact_form') {
     return (
@@ -75,6 +79,16 @@ function renderSection(
   }
   if (section.type === 'header') {
     return <HeaderSection key={section.id} section={section} designConfig={designConfig} />;
+  }
+  if (section.type === 'faq_accordion') {
+    return (
+      <FaqAccordionSection
+        key={section.id}
+        section={section}
+        orgId={orgId}
+        pageSlug={pageSlug}
+      />
+    );
   }
   const Component = SECTION_COMPONENTS[section.type] ?? GenericSection;
   return <Component key={section.id} section={section} />;
@@ -89,7 +103,7 @@ function renderSection(
  * Every other section renders in document order inside `<main>`. Pages with
  * no `header`/`footer` section emit no chrome at all (per PRD §17 Q5).
  */
-export function SectionRenderer({ sections, submittedSectionId, designConfig }: SectionRendererProps) {
+export function SectionRenderer({ sections, submittedSectionId, designConfig, orgId, pageSlug }: SectionRendererProps) {
   const headerIdx = sections.findIndex((s) => s.type === 'header');
   let footerIdx = -1;
   for (let i = sections.length - 1; i >= 0; i--) {
@@ -105,9 +119,9 @@ export function SectionRenderer({ sections, submittedSectionId, designConfig }: 
 
   return (
     <>
-      {headerSection ? renderSection(headerSection, submittedSectionId, designConfig) : null}
-      <main>{bodySections.map((s) => renderSection(s, submittedSectionId))}</main>
-      {footerSection ? renderSection(footerSection, submittedSectionId) : null}
+      {headerSection ? renderSection(headerSection, submittedSectionId, designConfig, orgId, pageSlug) : null}
+      <main>{bodySections.map((s) => renderSection(s, submittedSectionId, designConfig, orgId, pageSlug))}</main>
+      {footerSection ? renderSection(footerSection, submittedSectionId, designConfig, orgId, pageSlug) : null}
     </>
   );
 }
