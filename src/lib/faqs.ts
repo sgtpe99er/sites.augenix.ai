@@ -51,3 +51,50 @@ export async function getPageFaqs(orgId: string, pageSlug: string): Promise<FaqR
 
   return cached();
 }
+
+export interface FaqSitemapEntry {
+  page_slug: string;
+  page_title: string;
+  faq_count: number;
+  last_faq_updated: string;
+}
+
+async function fetchFaqSitemapEntries(orgId: string): Promise<FaqSitemapEntry[]> {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!supabaseUrl || !supabaseKey) return [];
+
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/rpc/get_faq_sitemap_entries`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      },
+      body: JSON.stringify({ p_org_id: orgId }),
+      next: { revalidate: 3600 },
+    });
+    if (!res.ok) return [];
+    return (await res.json()) as FaqSitemapEntry[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * List pages that have published FAQs, with the most recent FAQ update
+ * timestamp. Used to build `/faq-sitemap.xml`.
+ */
+export async function getFaqSitemapEntries(orgId: string): Promise<FaqSitemapEntry[]> {
+  const cached = unstable_cache(
+    () => fetchFaqSitemapEntries(orgId),
+    ['sites:faq-sitemap', orgId],
+    {
+      tags: [orgByIdTag(orgId)],
+      revalidate: 60 * 60,
+    },
+  );
+
+  return cached();
+}

@@ -40,7 +40,10 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
 
   return {
     rules: [{ userAgent: '*', allow: '/' }],
-    sitemap: `https://${cleanHost}/sitemap.xml`,
+    sitemap: [
+      `https://${cleanHost}/sitemap.xml`,
+      `https://${cleanHost}/faq-sitemap.xml`,
+    ],
     host: `https://${cleanHost}`,
   };
 }
