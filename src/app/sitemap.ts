@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { headers } from 'next/headers';
 
+import { listBlogPostRefs } from '@/lib/blog';
 import { getOrgByDomain } from '@/lib/org';
 import { listPublishedPages } from '@/lib/pages';
 
@@ -31,15 +32,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const org = await getOrgByDomain(host);
   if (!org) return [];
 
-  const pages = await listPublishedPages(org.id);
+  const [pages, blogPosts] = await Promise.all([
+    listPublishedPages(org.id),
+    listBlogPostRefs(org.id),
+  ]);
   const baseUrl = `https://${normalizeForUrl(host!)}`;
 
-  return pages.map((page) => ({
+  const pageEntries: MetadataRoute.Sitemap = pages.map((page) => ({
     url: page.slug === 'homepage' ? `${baseUrl}/` : `${baseUrl}/${page.slug}`,
     lastModified: new Date(page.updated_at),
     changeFrequency: 'weekly',
     priority: page.slug === 'homepage' ? 1.0 : 0.7,
   }));
+
+  const blogEntries: MetadataRoute.Sitemap = blogPosts.map((post) => ({
+    url: `${baseUrl}/blog/${post.slug}`,
+    lastModified: new Date(post.updated_at ?? post.published_at ?? new Date().toISOString()),
+    changeFrequency: 'weekly',
+    priority: 0.6,
+  }));
+
+  if (blogPosts.length > 0) {
+    pageEntries.push({
+      url: `${baseUrl}/blog`,
+      lastModified: new Date(blogPosts[0].published_at ?? new Date().toISOString()),
+      changeFrequency: 'daily',
+      priority: 0.8,
+    });
+  }
+
+  return [...pageEntries, ...blogEntries];
 }
 
 /**

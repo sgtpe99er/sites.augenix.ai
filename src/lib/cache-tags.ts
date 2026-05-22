@@ -40,3 +40,11 @@ export function pageTag(orgId: string, slug: string): string {
 export function faqsTag(orgId: string, slug: string): string {
   return `faqs:${orgId}:${slug}`;
 }
+
+export function blogListTag(orgId: string): string {
+  return `blog:${orgId}`;
+}
+
+export function blogPostTag(orgId: string, slug: string): string {
+  return `blog:${orgId}:${slug}`;
+}

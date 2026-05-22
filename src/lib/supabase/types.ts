@@ -87,6 +87,58 @@ export interface Database {
           category: string | null;
         }>;
       };
+      get_org_blog_posts: {
+        Args: { p_org_id: string; p_limit?: number; p_offset?: number; p_category?: string | null };
+        Returns: Array<{
+          id: string;
+          slug: string;
+          title: string;
+          excerpt: string | null;
+          body_html: string | null;
+          seo_title: string | null;
+          meta_description: string | null;
+          featured_image_url: string | null;
+          featured_image_alt: string | null;
+          featured_image_width: number | null;
+          featured_image_height: number | null;
+          og_title: string | null;
+          og_description: string | null;
+          og_image: string | null;
+          og_image_alt: string | null;
+          category: string | null;
+          tags: string[] | null;
+          author_name: string | null;
+          reading_time_minutes: number | null;
+          published_at: string | null;
+          updated_at: string | null;
+        }>;
+      };
+      get_blog_post_by_slug: {
+        Args: { p_org_id: string; p_slug: string };
+        Returns: Array<{
+          id: string;
+          slug: string;
+          title: string;
+          excerpt: string | null;
+          body_html: string | null;
+          seo_title: string | null;
+          meta_description: string | null;
+          featured_image_url: string | null;
+          featured_image_alt: string | null;
+          featured_image_width: number | null;
+          featured_image_height: number | null;
+          og_title: string | null;
+          og_description: string | null;
+          og_image: string | null;
+          og_image_alt: string | null;
+          category: string | null;
+          tags: string[] | null;
+          author_name: string | null;
+          reading_time_minutes: number | null;
+          published_at: string | null;
+          updated_at: string | null;
+        }>;
+      };
       submit_contact_form: {
         Args: {
           p_host: string;
